@@ -7,7 +7,7 @@ This component is intended to simplify using forms with [React](https://reactjs.
 
 ## Install
 
-`npm install --save @stanlemon/react-form
+`npm install --save @stanlemon/react-form`
 
 ## Example
 
