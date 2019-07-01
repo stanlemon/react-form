@@ -1,8 +1,8 @@
 {
   "name": "@stanlemon/react-form",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A react component for automatically wiring up forms.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "jest",
     "build": "tsc --build tsconfig.json ./",

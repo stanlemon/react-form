@@ -5,6 +5,10 @@ _A react component for automatically wiring up forms._
 
 This component is intended to simplify using forms with [React](https://reactjs.org) and does not prescribe any UI library to do so.
 
+## Install
+
+`npm install --save @stanlemon/react-form
+
 ## Example
 
 Wrap any form with this component and attach a handler and it'll handle populating those properties. Additionally you can pass server side errors in and map client side validators to your fields.
