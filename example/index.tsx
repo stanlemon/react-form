@@ -1,19 +1,7 @@
+import React from "react";
+import ReactDOM from "react-dom";
+import { Form } from "../src/Form";
 
-# &lt;Form /&gt;
-
-_A react component for automatically wiring up forms._
-
-This component is intended to simplify using forms with [React](https://reactjs.org) and does not prescribe any UI library to do so.
-
-## Install
-
-`npm install --save @stanlemon/react-form`
-
-## Example
-
-Wrap any form with this component and attach a handler and it'll handle populating those properties. Additionally you can pass server side errors in and map client side validators to your fields.
-
-```tsx
 interface Values {
   name?: string;
 }
@@ -81,22 +69,5 @@ class ExampleForm extends React.Component<{}, State> {
     );
   }
 }
-```
 
-Then in your document simply use:
-
-```tsx
-<ExampleForm />
-```
-
-Obviously if you want to do something more exciting than store the state back on the form you will want to modify your handler method accordingly.
-
-If you want to give it a spin, you can quickly run the example with parcel by doing:
-
-```
-npx parcel example/index.html
-```
-
-## TODO
-
-- [ ] Update tsc to use `"noImplicitAny": true `
+ReactDOM.render(<ExampleForm />, document.getElementById("root"));

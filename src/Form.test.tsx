@@ -7,13 +7,13 @@ interface TestFormErrors {
   name?: string[];
 }
 
-interface TestFormFields {
+interface TestFormvalues {
   name?: string;
 }
 
 interface TestFormState {
   errors: TestFormErrors;
-  fields: TestFormFields;
+  values: TestFormvalues;
 }
 
 interface TestFormProps {
@@ -29,35 +29,37 @@ class TestForm extends React.Component<TestFormProps, TestFormState> {
     }
   };
 
-  constructor(props) {
+  constructor(props: TestFormProps) {
     super(props);
 
     this.state = {
       errors: {},
-      fields: {}
+      values: {}
     };
   }
 
   onSubmit = (
     errors: TestFormErrors,
-    fields: TestFormFields
+    values: TestFormvalues
   ): TestFormState => {
-    const data = { errors, fields };
+    const data = { errors, values };
     this.setState(data);
     this.props.callback(data);
     return data;
   };
 
   render(): React.ReactElement {
-    const { fields, errors } = this.state;
+    const { values, errors } = this.state;
 
     return (
       <Form
-        handler={this.onSubmit}
-        values={fields}
+        onSubmit={this.onSubmit}
+        values={values}
         errors={errors}
         validate={TestForm.validate}
       >
+        <h1>Test Form</h1>
+        This is a test form.
         {/* This test id is used for our lookup later when firing our event */}
         <div>
           <input data-testid="input-name" type="text" name="name" />
@@ -99,7 +101,7 @@ describe("<Form />", (): void => {
     // We should have gotten back the name value
     expect(data).toMatchObject({
       errors: {},
-      fields: {
+      values: {
         name
       }
     });
@@ -128,7 +130,7 @@ describe("<Form />", (): void => {
       errors: {
         name: [TestForm.validate.name.notEmpty.msg]
       },
-      fields: {
+      values: {
         name: ""
       }
     });

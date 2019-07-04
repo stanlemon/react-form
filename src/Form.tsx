@@ -12,27 +12,27 @@ import * as React from "react";
 import * as Validator from "validator";
 
 export interface Props {
-  children?: React.ReactElement<{}>[] | JSX.Element[];
-  fields: {};
+  children?: React.ReactChild[];
+  values: {};
   validate?: {};
   errors?: {};
-  handler(errors: {}, fields: {}): {};
+  onSubmit(errors: {}, values: {}): {};
 }
 
 export class Form extends React.Component<Props, {}> {
   static defaultProps = {
-    fields: {},
+    values: {},
     errors: {},
     validate: {},
-    handler: (): {} => {
+    onSubmit: (): {} => {
       return {};
     }
   };
 
   validators = {};
-  fields = [];
+  values = [];
   state = {
-    fields: []
+    values: []
   };
 
   handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
@@ -66,7 +66,7 @@ export class Form extends React.Component<Props, {}> {
           throw new Error(`Validator does not have ${validator}`);
         }
 
-        const value = get(this.state.fields, field, "");
+        const value = get(this.state.values, field, "");
 
         let args = [value];
 
@@ -105,16 +105,16 @@ export class Form extends React.Component<Props, {}> {
 
     // This ensure we always send every field property, though for those that
     // have not had a change trigger we simply send an empty string
-    const newState = this.props.handler(
+    const newState = this.props.onSubmit(
       errors,
       Object.assign(
-        zipObject(this.fields, fill(range(this.fields.length), "")),
-        this.state.fields
+        zipObject(this.values, fill(range(this.values.length), "")),
+        this.state.values
       )
     );
 
     if (isObject(newState)) {
-      this.setState({ fields: newState });
+      this.setState({ values: newState });
     }
   };
 
@@ -124,22 +124,22 @@ export class Form extends React.Component<Props, {}> {
         ? event.target.checked
         : event.target.value;
     this.setState({
-      fields: Object.assign(this.state.fields, { [field]: value })
+      values: Object.assign(this.state.values, { [field]: value })
     });
   }
 
   componentWillMount(): void {
     this.setState({
-      fields: get(this.props, "fields", {})
+      values: get(this.props, "values", {})
     });
   }
 
   componentWillReceiveProps(nextProps: Props): void {
     if (
-      !isEqual(this.props.fields, nextProps.fields) &&
+      !isEqual(this.props.values, nextProps.values) &&
       Object.keys(nextProps.errors).length === 0
     ) {
-      this.setState({ fields: nextProps.fields });
+      this.setState({ values: nextProps.values });
     }
   }
 
@@ -163,9 +163,9 @@ export class Form extends React.Component<Props, {}> {
             this.validators[child.props.name] = child.props.validate;
           }
 
-          this.fields.push(child.props.name);
+          this.values.push(child.props.name);
 
-          const value = get(this.state.fields, child.props.name, "");
+          const value = get(this.state.values, child.props.name, "");
 
           return React.cloneElement(child, {
             [child.props.type === "checkbox" ? "checked" : "value"]: value,
