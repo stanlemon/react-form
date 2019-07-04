@@ -9,6 +9,9 @@
     "lint": "eslint --ext js,jsx,ts,tsx ./src/",
     "prettier": "prettier --check ./src/*"
   },
+  "engines": {
+    "node": ">=10.13.0"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:stanlemon/react-form.git"

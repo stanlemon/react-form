@@ -3,28 +3,44 @@ import * as React from "react";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 import { Form } from "./Form";
 
-interface TestFormErrors {
-  name?: string[];
+// Extend React's HTMLAttributes to support the 'validate' property that this component optionally allows
+declare module "react" {
+  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    validate?: {};
+  }
 }
 
-interface TestFormvalues {
-  name?: string;
+interface TestFormErrors {
+  firstName?: string[];
+  lastName?: string[];
+}
+
+interface TestFormValues {
+  firstName?: string;
+  lastName?: string;
 }
 
 interface TestFormState {
   errors: TestFormErrors;
-  values: TestFormvalues;
+  values: TestFormValues;
 }
 
 interface TestFormProps {
-  callback(data: TestFormState): void;
+  onSubmit(values: TestFormValues): void;
+  onSuccess(values: TestFormValues): TestFormValues;
+  onError(errors: TestFormErrors): void;
 }
 
 class TestForm extends React.Component<TestFormProps, TestFormState> {
   static validate = {
-    name: {
+    firstName: {
       notEmpty: {
-        msg: "You must enter a name for this form."
+        msg: "You must enter a first name for this form."
+      }
+    },
+    lastName: {
+      notEmpty: {
+        msg: "You must enter a last name for this form."
       }
     }
   };
@@ -38,14 +54,18 @@ class TestForm extends React.Component<TestFormProps, TestFormState> {
     };
   }
 
-  onSubmit = (
-    errors: TestFormErrors,
-    values: TestFormvalues
-  ): TestFormState => {
-    const data = { errors, values };
-    this.setState(data);
-    this.props.callback(data);
-    return data;
+  onSubmit = (values: TestFormValues): void => {
+    return this.props.onSubmit(values);
+  };
+
+  onSuccess = (values: TestFormValues): TestFormValues => {
+    this.setState({ values, errors: {} });
+    return this.props.onSuccess(values);
+  };
+
+  onError = (errors: TestFormErrors): void => {
+    this.setState({ errors });
+    this.props.onError(errors);
   };
 
   render(): React.ReactElement {
@@ -54,19 +74,39 @@ class TestForm extends React.Component<TestFormProps, TestFormState> {
     return (
       <Form
         onSubmit={this.onSubmit}
+        onSuccess={this.onSuccess}
+        onError={this.onError}
         values={values}
         errors={errors}
-        validate={TestForm.validate}
+        // Only put the first name validator here, because the last name is inlined
+        validate={{ firstName: TestForm.validate.firstName }}
       >
         <h1>Test Form</h1>
-        This is a test form.
+        This is a test form, and this paragraph is a similar react text node.
         {/* This test id is used for our lookup later when firing our event */}
         <div>
-          <input data-testid="input-name" type="text" name="name" />
+          <input data-testid="input-first-name" type="text" name="firstName" />
         </div>
-        {errors.name && (
-          <div data-testid="input-name-error" className="error">
-            {errors.name[0]}
+        {errors.firstName && (
+          <div data-testid="input-first-name-error" className="error">
+            {errors.firstName[0]}
+          </div>
+        )}
+        <div>
+          <input
+            data-testid="input-last-name"
+            type="text"
+            name="lastName"
+            validate={{
+              notEmpty: {
+                msg: "You must enter a last name for this form."
+              }
+            }}
+          />
+        </div>
+        {errors.lastName && (
+          <div data-testid="input-last-name-error" className="error">
+            {errors.lastName[0]}
           </div>
         )}
         <button type="submit">Submit</button>
@@ -78,43 +118,72 @@ class TestForm extends React.Component<TestFormProps, TestFormState> {
 describe("<Form />", (): void => {
   afterEach(cleanup);
 
-  it("Submitting a form with a value returns it without errors", (): void => {
-    let data = {};
+  const firstName = "Stan";
+  const lastName = "Lemon";
 
-    const callback = (state: TestFormState): void => {
-      data = state;
-    };
+  let data = {
+    errors: {},
+    values: {}
+  };
 
-    const component = <TestForm callback={callback} />;
+  const onSubmit = (values: TestFormValues): void => {
+    data.values = values;
+    return;
+  };
+  const onSuccess = (values: TestFormValues): TestFormValues => {
+    // Returning an empty object will essentially reset the form on submit,
+    // useful for forms that create new records. Forms editing existing
+    // records should return values.
+    return {};
+  };
+  const onError = (errors: TestFormErrors): void => {
+    data.errors = errors;
+  };
+
+  beforeEach((): void => {
+    data = { errors: {}, values: {} };
+  });
+
+  // Happy path
+  it("Submitting a form without errors", (): void => {
+    const component = (
+      <TestForm onSubmit={onSubmit} onSuccess={onSuccess} onError={onError} />
+    );
     const result = render(component);
 
-    const name = "Stan Lemon";
-
-    // Update our text input
-    fireEvent.change(result.getByTestId("input-name"), {
-      target: { value: name }
+    // Update our text inputs
+    fireEvent.change(result.getByTestId("input-first-name"), {
+      target: { value: firstName }
+    });
+    fireEvent.change(result.getByTestId("input-last-name"), {
+      target: { value: lastName }
     });
 
     // Submit the form
     fireEvent.click(result.getByText("Submit"));
 
-    // We should have gotten back the name value
+    // We should have gotten back correct value
     expect(data).toMatchObject({
       errors: {},
       values: {
-        name
+        firstName,
+        lastName
       }
     });
+
+    // With a successful submit, the form should now be cleared
+    expect(result.getByTestId("input-first-name").getAttribute("value")).toBe(
+      ""
+    );
+    expect(result.getByTestId("input-last-name").getAttribute("value")).toBe(
+      ""
+    );
   });
 
-  it("Submitting a form with no value returns an error", (): void => {
-    let data = {};
-
-    const callback = (state: TestFormState): void => {
-      data = state;
-    };
-
-    const component = <TestForm callback={callback} />;
+  it("Submitting a form with errors", (): void => {
+    const component = (
+      <TestForm onSubmit={onSubmit} onSuccess={onSuccess} onError={onError} />
+    );
     const result = render(component);
 
     // Submit the form
@@ -122,17 +191,105 @@ describe("<Form />", (): void => {
 
     // Our error message should appear in the dom
     expect(
-      result.getByText(TestForm.validate.name.notEmpty.msg)
+      result.getByText(TestForm.validate.firstName.notEmpty.msg)
     ).not.toBeNull();
 
-    // We should have gotten back the name value
+    // Our error message should appear in the dom
+    expect(
+      result.getByText(TestForm.validate.lastName.notEmpty.msg)
+    ).not.toBeNull();
+
+    // We should have gotten back empty values
     expect(data).toMatchObject({
       errors: {
-        name: [TestForm.validate.name.notEmpty.msg]
+        firstName: [TestForm.validate.firstName.notEmpty.msg],
+        lastName: [TestForm.validate.lastName.notEmpty.msg]
       },
       values: {
-        name: ""
+        firstName: "",
+        lastName: ""
       }
     });
+
+    // Now fill in the first name, form is still invalid, but the first name value should be preserved after submit
+    fireEvent.change(result.getByTestId("input-first-name"), {
+      target: { value: firstName }
+    });
+
+    // Submit the form
+    fireEvent.click(result.getByText("Submit"));
+
+    // Our first name error message should NOT appear in the dom
+    expect(
+      result.queryByText(TestForm.validate.firstName.notEmpty.msg)
+    ).toBeNull();
+
+    // Our last name error message should appear in the dom
+    expect(
+      result.getByText(TestForm.validate.lastName.notEmpty.msg)
+    ).not.toBeNull();
+
+    // First name should still have the value we entered into it
+    expect(result.getByTestId("input-first-name").getAttribute("value")).toBe(
+      firstName
+    );
+
+    // We should have gotten back the first name value and a last name error
+    expect(data).toMatchObject({
+      errors: {
+        lastName: [TestForm.validate.lastName.notEmpty.msg]
+      },
+      values: {
+        firstName: firstName,
+        lastName: ""
+      }
+    });
+
+    // Last name should still be empty
+    expect(result.getByTestId("input-last-name").getAttribute("value")).toBe(
+      ""
+    );
+
+    // An error about last name should exist
+    expect(
+      result.queryByText(TestForm.validate.lastName.notEmpty.msg)
+    ).not.toBeNull();
+
+    // Fill in the last name
+    fireEvent.change(result.getByTestId("input-last-name"), {
+      target: { value: lastName }
+    });
+
+    // Submit the form
+    fireEvent.click(result.getByText("Submit"));
+
+    // We should not have any errors and get both of our values
+    expect(data).toMatchObject({
+      errors: {},
+      values: {
+        firstName: firstName,
+        lastName: lastName
+      }
+    });
+
+    // An error about first name should not exist
+    expect(
+      result.queryByText(TestForm.validate.firstName.notEmpty.msg)
+    ).toBeNull();
+
+    // An error about last name should not exist
+    expect(
+      result.queryByText(TestForm.validate.lastName.notEmpty.msg)
+    ).toBeNull();
+
+    // First name should be empty
+    expect(result.getByTestId("input-first-name").getAttribute("value")).toBe(
+      ""
+    );
+
+    // Last name should be empty
+    expect(result.getByTestId("input-last-name").getAttribute("value")).toBe(
+      ""
+    );
   });
 });

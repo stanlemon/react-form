@@ -14,22 +14,26 @@ This component is intended to simplify using forms with [React](https://reactjs.
 Wrap any form with this component and attach a handler and it'll handle populating those properties. Additionally you can pass server side errors in and map client side validators to your fields.
 
 ```tsx
+import { Form } from "@stanlemon/react-form";
+
 interface Values {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface Errors {
-  name?: string[];
+  firstName?: string[];
+  lastName?: string[];
 }
 
 interface State {
   values?: Values;
   errors?: Errors;
-  history?: { values: Values; errors: Errors }[];
+  history?: { values?: Values; errors?: Errors }[];
 }
 
 class ExampleForm extends React.Component<{}, State> {
-  constructor(props) {
+  constructor(props: {}) {
     super(props);
     this.state = {
       values: {},
@@ -38,23 +42,31 @@ class ExampleForm extends React.Component<{}, State> {
     };
   }
 
-  onSubmit = (errors: Errors, values: Values): State => {
+  onSuccess = (values: Values): {} => {
+    this.setState({
+      // Clear our forms errors & values so we start fresh
+      errors: {},
+      values: {},
+      // This is to showcase submits over time
+      history: [{ values }, ...this.state.history]
+    });
+    return {};
+  }
+
+  onError = (errors: Errors): void => {
     this.setState({
       errors,
-      values,
-      // This is to showcase submits over time
-      history: [{ errors, values }, ...this.state.history]
+      history: [{ errors }, ...this.state.history]
     });
-    return this.state;
-  };
+  }
 
   render(): React.ReactElement {
     const { values, errors } = this.state;
 
     const validate = {
-      name: {
+      firstName: {
         notEmpty: {
-          msg: "You must enter a name for this form."
+          msg: "You must enter a first name for this form."
         }
       }
     };
@@ -62,7 +74,8 @@ class ExampleForm extends React.Component<{}, State> {
     return (
       <>
         <Form
-          onSubmit={this.onSubmit}
+          onSuccess={this.onSuccess}
+          onError={this.onError}
           values={values}
           errors={errors}
           validate={validate}
@@ -70,10 +83,20 @@ class ExampleForm extends React.Component<{}, State> {
           <h1>Example Form</h1>
           Try this form out for size!
           <div>
-            <label htmlFor="name">Name:</label>
-            <input type="text" name="name" />
+            <label htmlFor="name">First Name:</label>
+            <input type="text" name="firstName" />
           </div>
-          {errors.name && <div className="error" style={{ color: 'red' }}>{errors.name[0]}</div>}
+          {errors.firstName && <div className="error" style={{ color: 'red' }}>{errors.firstName[0]}</div>}
+          <div>
+            <label htmlFor="name">Last Name:</label>
+            <input type="text" name="lastName" validate={{
+              notEmpty: {
+                msg: "You must enter a last name for this form."
+              }
+            }}/>
+          </div>
+          {errors.lastName && <div className="error" style={{ color: 'red' }}>{errors.lastName[0]}</div>}
+
           <button type="submit">Submit</button>
         </Form>
         <pre>{this.state.history.map((v, i) => <div key={i}>{JSON.stringify({ errors: v.errors, values: v.values }))}</div>}</pre>

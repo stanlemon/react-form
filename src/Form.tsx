@@ -13,19 +13,73 @@ import * as Validator from "validator";
 
 export interface Props {
   children?: React.ReactChild[];
-  values: {};
+  /**
+   * Values to load into the form on render.
+   *
+   * Can be used for default values on fields.
+   */
+  values?: {};
+  /**
+   * Validation configuration, keyed by form field.
+   * Methods should map to the Validator package's functions and use the 'msg' key to define
+   * errors messages.
+   *
+   * For example:
+   * ```js
+   * const validate = {
+   *   firstName: {
+   *     notEmpty: {
+   *       msg: "You must enter a first name for this form."
+   *     }
+   *   }
+   * };
+   * ```
+   */
   validate?: {};
+  /**
+   * Error values to load into the form on render.
+   */
   errors?: {};
-  onSubmit(errors: {}, values: {}): {};
+  /**
+   * Callback when a form is submitted, executed everytime before onSuccess() or onError().
+   * @param values Form values that were submitted.
+   */
+  onSubmit?: (values: {}) => void;
+  /**
+   * Callback when a form is successfully submitted without errors.
+   * Any values returned here will replace the values in the form. If you are creating new
+   * records often you will want to blank out the form, which you can do by returning an empty
+   * object.  Forms where the records are being edited will often just want to return the
+   * values that were passed into this method.
+   * @param values Form values that were submitted.
+   */
+  onSuccess?: (values: {}) => {};
+  /**
+   * Callback when a form is submitted with errors.
+   * @param errors Form errors resulting from the submission.
+   */
+  onError?: (errors: {}) => void;
 }
 
+/**
+ * Automatically handle processing forms and their errors declaratively.
+ *
+ * Design your forms just as you normally would, but wrap them in the <Form /> component to let
+ * it handles value binding and validation. <Form/> makes it easy to do forms in React!
+ */
 export class Form extends React.Component<Props, {}> {
   static defaultProps = {
     values: {},
     errors: {},
     validate: {},
-    onSubmit: (): {} => {
-      return {};
+    onSubmit: (values: {}): {} => {
+      return values;
+    },
+    onSuccess: (values: {}): void => {
+      return;
+    },
+    onError: (errors: {}): void => {
+      return;
     }
   };
 
@@ -105,17 +159,25 @@ export class Form extends React.Component<Props, {}> {
 
     // This ensure we always send every field property, though for those that
     // have not had a change trigger we simply send an empty string
-    const newState = this.props.onSubmit(
-      errors,
-      Object.assign(
-        zipObject(this.values, fill(range(this.values.length), "")),
-        this.state.values
-      )
+    const newValues = Object.assign(
+      zipObject(this.values, fill(range(this.values.length), "")),
+      this.state.values
     );
+    //this.setState({ values: newState });
 
-    if (isObject(newState)) {
-      this.setState({ values: newState });
+    // Always call submit
+    this.props.onSubmit(newValues);
+
+    // If we have errors...
+    if (Object.keys(errors).length > 0) {
+      this.props.onError(errors);
+      return;
     }
+
+    // No errors!
+    this.setState({
+      values: this.props.onSuccess(newValues)
+    });
   };
 
   handleChange(field, event): void {
