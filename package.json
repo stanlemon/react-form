@@ -1,11 +1,12 @@
 {
   "name": "@stanlemon/react-form",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A react component for automatically wiring up forms.",
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
     "build": "tsc --build tsconfig.json ./",
+    "watch": "tsc --build tsconfig.json --watch ./",
     "lint": "eslint --ext js,jsx,ts,tsx ./src/",
     "prettier": "prettier --check ./src/*"
   },

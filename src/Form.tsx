@@ -89,7 +89,23 @@ export class Form extends React.Component<Props, {}> {
     values: []
   };
 
-  handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  private formRef: React.RefObject<HTMLFormElement>;
+
+  constructor(props: Props) {
+    super(props);
+
+    this.formRef = React.createRef();
+  }
+
+  /**
+   * Trigger a submit of the underlying form.
+   */
+  submit(): void {
+    const event = new Event("submit", { bubbles: false });
+    this.formRef.current.dispatchEvent(event);
+  }
+
+  private handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
 
     const errors = {};
@@ -180,7 +196,7 @@ export class Form extends React.Component<Props, {}> {
     });
   };
 
-  handleChange(field, event): void {
+  private handleChange(field, event): void {
     const value =
       event.target.type === "checkbox"
         ? event.target.checked
@@ -207,13 +223,13 @@ export class Form extends React.Component<Props, {}> {
 
   render(): React.ReactNode {
     return (
-      <form onSubmit={this.handleSubmit}>
+      <form ref={this.formRef} onSubmit={this.handleSubmit}>
         {this.processChildren(this.props.children)}
       </form>
     );
   }
 
-  processChildren(children: React.ReactChild[]): React.ReactChild[] {
+  private processChildren(children: React.ReactChild[]): React.ReactChild[] {
     return React.Children.map(
       children,
       (child): React.ReactChild => {
