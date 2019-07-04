@@ -11,8 +11,8 @@ import {
 import * as React from "react";
 import * as Validator from "validator";
 
-interface Props {
-  children?: React.ReactElement<{}> | JSX.Element[];
+export interface Props {
+  children?: React.ReactElement<{}>[] | JSX.Element[];
   fields: {};
   validate?: {};
   errors?: {};
@@ -35,7 +35,7 @@ export class Form extends React.Component<Props, {}> {
     fields: []
   };
 
-  handleSubmit = e => {
+  handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
 
     const errors = {};
@@ -43,8 +43,8 @@ export class Form extends React.Component<Props, {}> {
 
     Object.assign(validators, this.validators, this.props.validate);
 
-    Object.keys(validators).forEach(field => {
-      Object.keys(validators[field]).forEach(key => {
+    Object.keys(validators).forEach((field): void => {
+      Object.keys(validators[field]).forEach((key): void => {
         let validator;
         // Magically prepend is for most validators
         if (
@@ -118,7 +118,7 @@ export class Form extends React.Component<Props, {}> {
     }
   };
 
-  handleChange(field, event) {
+  handleChange(field, event): void {
     const value =
       event.target.type === "checkbox"
         ? event.target.checked
@@ -128,16 +128,16 @@ export class Form extends React.Component<Props, {}> {
     });
   }
 
-  componentWillMount() {
+  componentWillMount(): void {
     this.setState({
       fields: get(this.props, "fields", {})
     });
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props): void {
     if (
       !isEqual(this.props.fields, nextProps.fields) &&
-      nextProps.errors.length === 0
+      Object.keys(nextProps.errors).length === 0
     ) {
       this.setState({ fields: nextProps.fields });
     }
@@ -151,32 +151,38 @@ export class Form extends React.Component<Props, {}> {
     );
   }
 
-  processChildren(children) {
-    return React.Children.map(children, child => {
-      if (
-        child instanceof Object &&
-        includes(["input", "textarea", "select"], child.type)
-      ) {
-        if (child.props.validate) {
-          this.validators[child.props.name] = child.props.validate;
+  processChildren(children: React.ReactChild[]): React.ReactChild[] {
+    return React.Children.map(
+      children,
+      (child): React.ReactChild => {
+        if (
+          React.isValidElement(child) &&
+          includes(["input", "textarea", "select"], child.type)
+        ) {
+          if (child.props.validate) {
+            this.validators[child.props.name] = child.props.validate;
+          }
+
+          this.fields.push(child.props.name);
+
+          const value = get(this.state.fields, child.props.name, "");
+
+          return React.cloneElement(child, {
+            [child.props.type === "checkbox" ? "checked" : "value"]: value,
+            onChange: this.handleChange.bind(this, child.props.name)
+          });
+        } else if (
+          React.isValidElement(child) &&
+          React.Children.count(child) > 0
+        ) {
+          return React.cloneElement(
+            child,
+            {},
+            this.processChildren(child.props.children)
+          );
         }
-
-        this.fields.push(child.props.name);
-
-        const value = get(this.state.fields, child.props.name, "");
-
-        return React.cloneElement(child, {
-          [child.props.type === "checkbox" ? "checked" : "value"]: value,
-          onChange: this.handleChange.bind(this, child.props.name)
-        });
-      } else if (child instanceof Object && React.Children.count(child) > 0) {
-        return React.cloneElement(
-          child,
-          {},
-          this.processChildren(child.props.children)
-        );
+        return child;
       }
-      return child;
-    });
+    );
   }
 }

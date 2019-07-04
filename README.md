@@ -14,15 +14,50 @@ This component is intended to simplify using forms with [React](https://reactjs.
 Wrap any form with this component and attach a handler and it'll handle populating those properties. Additionally you can pass server side errors in and map client side validators to your fields.
 
 ```jsx
-<Form handler={(errors, fields) => console.log(errors, fields)}>
-  <input type="text" name="name" />
-  <button type="submit">Submit</button>
-</Form>
+class MyForm extends React.Component {
+  onSubmit = (errors, fields) => {
+    this.setState({ errors, fields });
+  };
+
+  render(): React.ReactElement {
+    const { fields, errors } = this.state;
+
+    const validate = {
+      name: {
+        notEmpty: {
+          msg: "You must enter a name for this form."
+        }
+      }
+    };
+
+    return (
+      <Form
+        handler={this.onSubmit}
+        fields={fields}
+        errors={errors}
+        validate={TestForm.validate}
+      >
+        <div>
+          <input type="text" name="name" />
+        </div>
+        {errors.name && <div className="error">{errors.name[0]}</div>}
+        <button type="submit">Submit</button>
+      </Form>
+    );
+  }
+}
 ```
+
+Then in your document simply use:
+
+```jsx
+<MyForm />
+```
+
+Obviously if you want to do something more exciting than store the state back on the form you will want to modify your handler method accordingly.
 
 ## TODO
 
 - [ ] Rename `fields` to `values`
 - [ ] Rename `handler()` to `onSubmit()`
-- [ ] Add more robust examples
 - [ ] Update tsc to use `"noImplicitAny": true `
